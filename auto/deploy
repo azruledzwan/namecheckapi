@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -euox pipefail
+
+cd "$(dirname "$0")/../infra"
+
+export DEPLOYER_VERSION=12
+export AWS_REGION=${AWS_REGION:-ap-southeast-1}
+
+function exists()
+{
+  command -v "$1" >/dev/null 2>&1
+}
+
+function authenticate_to_ecr {
+
+    AWS_ACCOUNT_ID="${1:-}"
+    REGION="${2:-}"
+
+    if exists docker ; then
+        echo "docker found in PATH."
+    else
+        echo "docker NOT found in PATH, Exiting!!!"
+        exit 1
+    fi
+    echo "Authenticating to ECR"
+    eval "$(docker run --network=host -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN --rm xueshanf/awscli aws ecr get-login --no-include-email --registry-ids "${AWS_ACCOUNT_ID}" --region "${REGION}")"
+}
+
+
+
+if [[ -n "${ENVIRONMENT:-}" ]]; then
+    echo "Environment is ${ENVIRONMENT}"
+    if [[ "${ENVIRONMENT}" = "DEV" ]]; then
+
+        export AWS_ACCOUNT_ID="684377339030"
+        export SERVICE_CLUSTER="dev-analytics-cluster"
+        export VALUES_FILE="dev.yaml"
+        export CHART_NAMESPACE="default"
+
+    elif [[ "${ENVIRONMENT}" = "SIT" ]]; then
+
+        export AWS_ACCOUNT_ID="684377339030"
+        export SERVICE_CLUSTER="dev-analytics-cluster"
+        export VALUES_FILE="sit.yaml"
+        export CHART_NAMESPACE="sit"
+
+    elif [[ "${ENVIRONMENT}" = "UAT" ]]; then
+
+        export AWS_ACCOUNT_ID="580868083131"
+        export SERVICE_CLUSTER="uat-analytics-cluster"
+        export VALUES_FILE="uat.yaml"
+        export CHART_NAMESPACE="default"
+
+    elif [[ "${ENVIRONMENT}" = "PROD" ]]; then
+
+        export AWS_ACCOUNT_ID="930790092975"
+        export SERVICE_CLUSTER="prod-analytics-cluster"
+        export VALUES_FILE="prod.yaml"
+        export CHART_NAMESPACE="default"
+
+    else
+        echo "Unsupported ENVIRONMENT Value, Exiting!!!"
+        exit 1
+    fi
+
+    echo "AWS Account ID => ${AWS_ACCOUNT_ID}, Cluster => ${SERVICE_CLUSTER}"
+    authenticate_to_ecr "${AWS_ACCOUNT_ID}" "${AWS_REGION}"
+else
+    echo "ENVIRONMENT Value can't be null, Exiting!!!"
+    exit 1
+fi
+
+echo "Deploying helm chart"
+export CHART_NAME="$(grep "name" Chart.yaml | cut -d" " -f2)"
+helm upgrade --install \
+             --force \
+             --wait "${CHART_NAME}" \
+             --namespace="${CHART_NAMESPACE}" \
+             --set buildNumber="${BUILD_NUMBER:-latest}" . -f "${VALUES_FILE}" --debug

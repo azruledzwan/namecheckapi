@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+export AWS_REGION="${AWS_REGION:=ap-southeast-1}"
+export DOCKERFILE_PATH="Dockerfile"
+
+function exists()
+{
+  command -v "${1:-}" >/dev/null 2>&1
+}
+
+function create_ecr_repo {
+
+    export REPO_NAME="${1:-}"
+    export REGION="${2:-}"
+    aws ecr describe-repositories --repository-names "${REPO_NAME}" --region "${REGION}" --no-cli-pager || aws ecr create-repository --repository-name "${REPO_NAME}" --region "${REGION}"
+}
+
+function authenticate_to_ecr() {
+
+    AWS_ACCOUNT_ID="${1:-}"
+    REGION="${2:-}"
+
+    if exists docker ; then
+        echo "docker found in PATH."
+    else
+        echo "docker NOT found in PATH, Exiting!!!"
+        exit 1
+    fi
+    echo "Authenticating to ECR"
+    eval "$(docker run --rm --network=host -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN --rm xueshanf/awscli aws ecr get-login --no-include-email --registry-ids "${AWS_ACCOUNT_ID}" --region "${REGION}")"
+}
+
+
+if [[ -n "${ENVIRONMENT:-}" ]]; then
+    echo "Environment is ${ENVIRONMENT}"
+    if [[ "${ENVIRONMENT}" = "DEV" ]]; then
+
+        # Analytics Non-Prod
+        export AWS_PROJECT_ID="684377339030" 
+        export PREFIX_ENV="dev"
+
+    elif [[ "${ENVIRONMENT}" = "SIT" ]]; then
+
+        # Analytics Pre-Prod
+        export AWS_PROJECT_ID="684377339030"
+        export PREFIX_ENV="sit"
+
+    elif [[ "${ENVIRONMENT}" = "UAT" ]]; then
+
+        # Analytics Pre-Prod
+        export AWS_PROJECT_ID="580868083131"
+        export PREFIX_ENV="uat"
+
+    elif [[ "${ENVIRONMENT}" = "PROD" ]]; then
+
+        # Analytics Prod
+        export AWS_PROJECT_ID="930790092975"
+        export PREFIX_ENV="prod"
+
+    else
+        echo "Unsupported ENVIRONMENT Value, Exiting!!!"
+        exit 1
+    fi
+
+    echo "AWS Project ID => ${AWS_PROJECT_ID}"
+
+    
+else
+    echo "Value of ENVIRONMENT can't be null, Exiting!!!"
+    exit 1
+fi
+
+export IMAGE_NAME="${PREFIX_ENV}-namecheck-api"
+
+authenticate_to_ecr "${AWS_PROJECT_ID}" "${AWS_REGION}"
+
+# creates ecr repo if it doesn't exist. Risky in case of typo.
+create_ecr_repo "${IMAGE_NAME}" "${AWS_REGION}"
+export IMAGE_URL="${AWS_PROJECT_ID}".dkr.ecr."${AWS_REGION}".amazonaws.com/"${IMAGE_NAME}":"${BUILD_NUMBER:-latest}"
+
+echo "Building the docker image"
+docker build --network=host -t "${IMAGE_NAME}":"${BUILD_NUMBER:-latest}" -f "${DOCKERFILE_PATH}" .
+
+echo "Tagging the image"
+docker tag "${IMAGE_NAME}":"${BUILD_NUMBER:-latest}" "${IMAGE_URL}"
+
+echo "Pushing the image to Container Registry"
+docker push "${IMAGE_URL}"
