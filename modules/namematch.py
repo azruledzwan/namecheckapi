@@ -26,7 +26,7 @@ class NameMatcher:
         #fuzz.partial_ratio() takes in the shortest string
         #fuzz.token_sort_ratio Attempts to account for similar strings out of order.
         #fuzz.token_set_ratio considers duplicate words as a single word.
-        return fuzz.token_set_ratio(str1, str2)
+        return fuzz.ratio(str1, str2)
 
     def match_names(
         self, name1, name2, acc_uuid, buyer_bank_id="Other"
