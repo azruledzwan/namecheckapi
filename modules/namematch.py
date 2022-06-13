@@ -95,7 +95,4 @@ class NameMatcher:
         if ' BTE ' in name:
             name  = name.replace('BTE', 'BT')
             return name
-        if ' B ' in name:
-            name  = name.replace('B', 'BIN')
-            return name    
         return name
