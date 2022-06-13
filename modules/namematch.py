@@ -71,14 +71,14 @@ class NameMatcher:
 
         compare = self._compare(name1, name2)
         print(compare)
-        if compare == 100:
+        if 1 == 100:
             return compare
         else: 
             name1 = self._prefix_match(name1)
             name2 = self._prefix_match(name2)
             print(name1)
             print(name2)
-            
+                        
         return self._compare(name1, name2)
 
     def _remove_salut(self, name):
@@ -89,10 +89,18 @@ class NameMatcher:
         return name
 
     def _prefix_match(self, name):
-        if ' BINTI ' in name:
-            name  = name.replace('BINTI', 'BT')
+        tokenize = re.split(r"\s+", name)
+
+        if 'BTE' in tokenize:
+            name = [re.sub(r"\bBTE\b", "BT", name, count=4) for name in tokenize]
+            name = " ".join(name)
             return name
-        if ' BTE ' in name:
-            name  = name.replace('BTE', 'BT')
+        if 'BINTI' in tokenize:
+            name = [re.sub(r"\bBINTI\b", "BT", name, count=4) for name in tokenize]
+            name = " ".join(name)
             return name
+        # if ' BTE' in name:
+        #     name  = name.replace(' BTE ', ' BT ', 1) 
+        # if ' BINTI ' in name:
+        #     name  = name.replace(' BINTI' , ' BT ', 1)
         return name
