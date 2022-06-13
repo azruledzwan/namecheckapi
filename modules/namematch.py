@@ -92,13 +92,13 @@ class NameMatcher:
         tokenize = re.split(r"\s+", name)
 
         if 'BTE' in tokenize:
-            name = [re.sub(r"\bBTE\b", "BT", name, count=4) for name in tokenize]
+            name = [re.sub(r"\bBTE\b", "BT", name, count=1) for name in tokenize]
             name = " ".join(name)
-            return name
+            # return name
         if 'BINTI' in tokenize:
-            name = [re.sub(r"\bBINTI\b", "BT", name, count=4) for name in tokenize]
+            name = [re.sub(r"\bBINTI\b", "BT", name, count=1) for name in tokenize]
             name = " ".join(name)
-            return name
+            # return name
         # if ' BTE' in name:
         #     name  = name.replace(' BTE ', ' BT ', 1) 
         # if ' BINTI ' in name:
