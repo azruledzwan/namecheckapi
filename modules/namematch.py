@@ -74,7 +74,10 @@ class NameMatcher:
         if compare == 100:
             return compare
         else: 
+            name1 = self._prefix_match(name1)
             name2 = self._prefix_match(name2)
+            print(name1)
+            print(name2)
             
         return self._compare(name1, name2)
 
@@ -89,11 +92,8 @@ class NameMatcher:
         if ' BINTI ' in name:
             name  = name.replace('BINTI', 'BT')
             return name
-        if ' BT ' in name:
-            name  = name.replace('BT', 'BINTI')
-            return name
-        if ' BIN ' in name:
-            name  = name.replace('BIN', 'B')
+        if ' BTE ' in name:
+            name  = name.replace('BTE', 'BT')
             return name
         if ' B ' in name:
             name  = name.replace('B', 'BIN')
